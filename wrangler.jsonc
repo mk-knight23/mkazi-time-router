@@ -15,6 +15,14 @@
     {
       "pattern": "mkazi.live",
       "zone_name": "mkazi.live"
+    },
+    {
+      "pattern": "www.mkazi.live/*",
+      "zone_name": "mkazi.live"
+    },
+    {
+      "pattern": "www.mkazi.live",
+      "zone_name": "mkazi.live"
     }
   ]
 }

@@ -159,6 +159,20 @@ export default {
     const publicUrl =
       new URL(request.url);
 
+    // Redirect www to non-www
+    if (
+      publicUrl.hostname ===
+      "www.mkazi.live"
+    ) {
+      publicUrl.hostname =
+        "mkazi.live";
+
+      return Response.redirect(
+        publicUrl.toString(),
+        301,
+      );
+    }
+
     const scheduled =
       getScheduledWebsite();
 
