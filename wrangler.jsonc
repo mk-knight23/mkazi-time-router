@@ -3,7 +3,18 @@
   "name": "mkazi-time-router",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-18",
+  "workers_dev": true,
   "observability": {
     "enabled": true
-  }
+  },
+  "routes": [
+    {
+      "pattern": "mkazi.live/*",
+      "zone_name": "mkazi.live"
+    },
+    {
+      "pattern": "mkazi.live",
+      "zone_name": "mkazi.live"
+    }
+  ]
 }
