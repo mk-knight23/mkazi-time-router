@@ -38,6 +38,11 @@ const MINUTES_PER_DAY = 1440;
 const SLOT_MINUTES = 288;
 const IST_OFFSET_MINUTES = 330;
 
+const SEARCH_BOTS =
+  /googlebot|bingbot|yandexbot|duckduckbot|slurp|baiduspider|facebookexternalhit|twitterbot|linkedinbot|embedly|quora|pinterest|redditbot/i;
+
+const CANONICAL_INDEX = 0;
+
 function getScheduledWebsite(date = new Date()) {
   const utcMinutes =
     date.getUTCHours() * 60 +
@@ -88,6 +93,33 @@ function getStickyWebsiteIndex(
   }
 
   return index;
+}
+
+function getPortfolioOverride(
+  url: URL,
+): number | null {
+  const param = url.searchParams.get("portfolio");
+  if (!param) return null;
+
+  const num = Number(param);
+  if (num >= 1 && num <= WEBSITES.length) {
+    return num - 1;
+  }
+
+  const byId = WEBSITES.findIndex(
+    (w) => w.id === param,
+  );
+  if (byId !== -1) return byId;
+
+  return null;
+}
+
+function isSearchBot(
+  request: Request,
+): boolean {
+  const ua =
+    request.headers.get("user-agent") || "";
+  return SEARCH_BOTS.test(ua);
 }
 
 function isHtmlNavigation(
@@ -151,6 +183,118 @@ function rewriteRedirectLocation(
   }
 }
 
+async function fetchWithFallback(
+  primaryIndex: number,
+  publicUrl: URL,
+  requestHeaders: Headers,
+  request: Request,
+): Promise<{
+  response: Response;
+  activeIndex: number;
+  activeWebsite: Website;
+}> {
+  const order = [primaryIndex];
+  for (let i = 0; i < WEBSITES.length; i++) {
+    if (i !== primaryIndex) order.push(i);
+  }
+
+  for (const idx of order) {
+    const website = WEBSITES[idx];
+    const destination = new URL(website.origin);
+    destination.pathname = publicUrl.pathname;
+    destination.search = publicUrl.search;
+
+    const headers = new Headers(requestHeaders);
+    headers.set(
+      "x-mkazi-active-site",
+      website.id,
+    );
+
+    try {
+      const upstreamRequest = new Request(
+        destination.toString(),
+        {
+          method: request.method,
+          headers,
+          body:
+            request.method === "GET" ||
+            request.method === "HEAD"
+              ? undefined
+              : request.body,
+          redirect: "manual",
+        },
+      );
+
+      const response = await fetch(
+        upstreamRequest,
+      );
+
+      if (response.status < 500) {
+        return {
+          response,
+          activeIndex: idx,
+          activeWebsite: website,
+        };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return {
+    response: Response.json(
+      {
+        ok: false,
+        code: "ALL_ORIGINS_FAILED",
+        message:
+          "All upstream origins are unavailable",
+      },
+      { status: 502 },
+    ),
+    activeIndex: primaryIndex,
+    activeWebsite: WEBSITES[primaryIndex],
+  };
+}
+
+class SwitcherInjector {
+  private activeIndex: number;
+  private websites: readonly Website[];
+
+  constructor(
+    activeIndex: number,
+    websites: readonly Website[],
+  ) {
+    this.activeIndex = activeIndex;
+    this.websites = websites;
+  }
+
+  element(element: Element) {
+    const buttons = this.websites
+      .map((w, i) => {
+        const isActive =
+          i === this.activeIndex;
+        const cls = isActive
+          ? "mkr-btn mkr-active"
+          : "mkr-btn";
+        return `<a href="?portfolio=${w.id}" class="${cls}" title="${w.name}">${w.id}</a>`;
+      })
+      .join("");
+
+    const html = `<div id="mkazi-switcher" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:0;padding:6px 10px;background:rgba(8,12,20,0.85);border:1px solid rgba(255,255,255,0.15);border-radius:30px;backdrop-filter:blur(14px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+<span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-right:8px;white-space:nowrap">Portfolio</span>
+${buttons}
+<style>
+.mkr-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);text-decoration:none;transition:all .2s;margin:0 2px}
+.mkr-btn:hover{background:rgba(255,255,255,0.12);color:#fff}
+.mkr-active{background:rgba(16,185,129,0.9);color:#0a0a0f!important}
+.mkr-active:hover{background:rgba(16,185,129,1)}
+</style>
+</div>`;
+
+    element.append(html, { html: true });
+  }
+}
+
 export default {
   async fetch(
     request: Request,
@@ -159,14 +303,11 @@ export default {
     const publicUrl =
       new URL(request.url);
 
-    // Redirect www to non-www
     if (
       publicUrl.hostname ===
       "www.mkazi.live"
     ) {
-      publicUrl.hostname =
-        "mkazi.live";
-
+      publicUrl.hostname = "mkazi.live";
       return Response.redirect(
         publicUrl.toString(),
         301,
@@ -180,56 +321,83 @@ export default {
       publicUrl.pathname ===
       "/__router-health"
     ) {
+      const origins = await Promise.all(
+        WEBSITES.map(async (w) => {
+          try {
+            const r = await fetch(
+              w.origin,
+              {
+                method: "HEAD",
+                signal: AbortSignal.timeout(
+                  5000,
+                ),
+              },
+            );
+            return {
+              id: w.id,
+              name: w.name,
+              status: r.status,
+              healthy: r.status < 500,
+            };
+          } catch {
+            return {
+              id: w.id,
+              name: w.name,
+              status: 0,
+              healthy: false,
+            };
+          }
+        }),
+      );
+
       return Response.json(
         {
           ok: true,
           router:
-            "mkazi-cloudflare-router",
+            "mkazi-cloudflare-router-v2",
           scheduledWebsite:
             scheduled.website.id,
           scheduledName:
             scheduled.website.name,
-          scheduledOrigin:
-            scheduled.website.origin,
           indiaMinutesSinceMidnight:
             scheduled.indiaMinutes,
-          slotMinutes:
-            SLOT_MINUTES,
+          slotMinutes: SLOT_MINUTES,
           timestamp:
             new Date().toISOString(),
+          origins,
         },
         {
           status: 200,
           headers: {
-            "cache-control":
-              "no-store",
+            "cache-control": "no-store",
             "x-mkazi-router":
-              "cloudflare-worker",
+              "cloudflare-worker-v2",
           },
         },
       );
     }
 
+    const portfolioOverride =
+      getPortfolioOverride(publicUrl);
+
+    const botDetected =
+      isSearchBot(request);
+
     const stickyIndex =
       getStickyWebsiteIndex(request);
 
-    const activeIndex =
-      isHtmlNavigation(request)
-        ? scheduled.index
-        : stickyIndex ??
-          scheduled.index;
+    let activeIndex: number;
 
-    const activeWebsite =
-      WEBSITES[activeIndex];
-
-    const destination =
-      new URL(activeWebsite.origin);
-
-    destination.pathname =
-      publicUrl.pathname;
-
-    destination.search =
-      publicUrl.search;
+    if (portfolioOverride !== null) {
+      activeIndex = portfolioOverride;
+    } else if (botDetected) {
+      activeIndex = CANONICAL_INDEX;
+    } else if (isHtmlNavigation(request)) {
+      activeIndex = scheduled.index;
+    } else {
+      activeIndex =
+        stickyIndex ?? scheduled.index;
+    }
 
     const requestHeaders =
       new Headers(request.headers);
@@ -246,46 +414,28 @@ export default {
 
     requestHeaders.set(
       "x-forwarded-proto",
-      publicUrl.protocol.replace(
-        ":",
-        "",
-      ),
-    );
-
-    requestHeaders.set(
-      "x-mkazi-active-site",
-      activeWebsite.id,
+      publicUrl.protocol.replace(":", ""),
     );
 
     try {
-      const upstreamRequest =
-        new Request(
-          destination.toString(),
-          {
-            method: request.method,
-            headers: requestHeaders,
-            body:
-              request.method ===
-                "GET" ||
-              request.method ===
-                "HEAD"
-                ? undefined
-                : request.body,
-            redirect: "manual",
-          },
-        );
+      const {
+        response: upstreamResponse,
+        activeIndex: resolvedIndex,
+        activeWebsite,
+      } = await fetchWithFallback(
+        activeIndex,
+        publicUrl,
+        requestHeaders,
+        request,
+      );
 
-      const upstreamResponse =
-        await fetch(upstreamRequest);
-
-      const responseHeaders =
-        new Headers(
-          upstreamResponse.headers,
-        );
+      const responseHeaders = new Headers(
+        upstreamResponse.headers,
+      );
 
       responseHeaders.set(
         "x-mkazi-router",
-        "cloudflare-worker",
+        "cloudflare-worker-v2",
       );
 
       responseHeaders.set(
@@ -298,10 +448,22 @@ export default {
         activeWebsite.name,
       );
 
-      const location =
-        responseHeaders.get(
-          "location",
+      if (botDetected) {
+        responseHeaders.set(
+          "x-mkazi-bot-mode",
+          "canonical",
         );
+      }
+
+      if (portfolioOverride !== null) {
+        responseHeaders.set(
+          "x-mkazi-override",
+          "query-param",
+        );
+      }
+
+      const location =
+        responseHeaders.get("location");
 
       if (location) {
         responseHeaders.set(
@@ -320,9 +482,7 @@ export default {
         ) || "";
 
       if (
-        contentType.includes(
-          "text/html",
-        ) ||
+        contentType.includes("text/html") ||
         publicUrl.pathname.startsWith(
           "/api/",
         )
@@ -333,22 +493,60 @@ export default {
         );
       }
 
+      const cookieIndex =
+        portfolioOverride !== null
+          ? portfolioOverride
+          : scheduled.index;
+
       if (isHtmlNavigation(request)) {
         const cookieLifetime =
-          getCookieLifetime(
-            scheduled.indiaMinutes,
-          );
+          portfolioOverride !== null
+            ? 3600
+            : getCookieLifetime(
+                scheduled.indiaMinutes,
+              );
 
         responseHeaders.append(
           "set-cookie",
           [
-            `mkazi_active_site=${scheduled.index}`,
+            `mkazi_active_site=${cookieIndex}`,
             `Max-Age=${cookieLifetime}`,
             "Path=/",
             "Secure",
             "HttpOnly",
             "SameSite=Lax",
           ].join("; "),
+        );
+      }
+
+      if (
+        contentType.includes(
+          "text/html",
+        ) &&
+        !botDetected &&
+        isHtmlNavigation(request)
+      ) {
+        const rewriter =
+          new HTMLRewriter()
+            .on(
+              "body",
+              new SwitcherInjector(
+                resolvedIndex,
+                WEBSITES,
+              ),
+            );
+
+        return rewriter.transform(
+          new Response(
+            upstreamResponse.body,
+            {
+              status:
+                upstreamResponse.status,
+              statusText:
+                upstreamResponse.statusText,
+              headers: responseHeaders,
+            },
+          ),
         );
       }
 
@@ -372,9 +570,7 @@ export default {
         "MKazi proxy error",
         {
           activeWebsite:
-            activeWebsite.id,
-          destination:
-            destination.toString(),
+            WEBSITES[activeIndex].id,
           message,
         },
       );
@@ -385,20 +581,19 @@ export default {
           code:
             "UPSTREAM_PROXY_FAILED",
           activeWebsite:
-            activeWebsite.id,
+            WEBSITES[activeIndex].id,
           activeOrigin:
-            activeWebsite.origin,
+            WEBSITES[activeIndex].origin,
           message,
         },
         {
           status: 502,
           headers: {
-            "cache-control":
-              "no-store",
+            "cache-control": "no-store",
             "x-mkazi-router":
-              "cloudflare-worker",
+              "cloudflare-worker-v2",
             "x-mkazi-active-site":
-              activeWebsite.id,
+              WEBSITES[activeIndex].id,
           },
         },
       );
