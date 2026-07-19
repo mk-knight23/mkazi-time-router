@@ -1,8 +1,25 @@
-# MK Router
+# MK Router — mkazi.live
+
+[![Live](https://img.shields.io/badge/live-mkazi.live-10b981?style=flat-square)](https://mkazi.live)
+[![Backup](https://img.shields.io/badge/backup-router.mkazi.live-6366f1?style=flat-square)](https://router.mkazi.live)
+
+> **Live:** **[mkazi.live](https://mkazi.live)** (Cloudflare) · backup **[router.mkazi.live](https://router.mkazi.live)** (Vercel)
 
 A **time-based portfolio router**. It serves **one of five portfolio sites at the root domain, rotating every hour (IST)** — so a visitor to the main domain sees a different portfolio each hour, cycling through all five. The public domain stays in the address bar (it's a reverse proxy, not a redirect).
 
+## The MK Portfolio Network
+
+| Discipline | Live Site | Repository |
+|---|---|---|
+| Frontend Engineer | **[frontend.mkazi.live](https://frontend.mkazi.live)** | [`MK-PixelFolio`](https://github.com/mk-knight23/MK-PixelFolio) |
+| Backend Systems Architect | **[backend.mkazi.live](https://backend.mkazi.live)** | [`MK-CoreFolio`](https://github.com/mk-knight23/MK-CoreFolio) |
+| Full-Stack Developer | **[fullstack.mkazi.live](https://fullstack.mkazi.live)** | [`MK-StackFolio`](https://github.com/mk-knight23/MK-StackFolio) |
+| AI Engineer & Dev Tools | **[devtools.mkazi.live](https://devtools.mkazi.live)** | [`MK-DevDeck`](https://github.com/mk-knight23/MK-DevDeck) |
+| AI Frontend Engineer | **[ai.mkazi.live](https://ai.mkazi.live)** | [`MK-NeuroFolio`](https://github.com/mk-knight23/MK-NeuroFolio) |
+| All five, rotating hourly | **[mkazi.live](https://mkazi.live)** | [`mkazi-time-router`](https://github.com/mk-knight23/mkazi-time-router) ← *this repo* |
+
 Runs two ways from one codebase:
+
 
 - **Vercel Edge Middleware** — [`middleware.ts`](middleware.ts) (primary / current deploy target)
 - **Cloudflare Worker** — [`src/index.ts`](src/index.ts) (original; deploy with `wrangler deploy`)
