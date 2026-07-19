@@ -10,32 +10,34 @@ const WEBSITES: readonly Website[] = [
 	{
 		id: '01',
 		name: 'DevTools',
-		origin: 'https://01-portfolio-devtools.vercel.app',
+		origin: 'https://mk-devdeck.vercel.app',
 	},
 	{
 		id: '02',
 		name: 'Fullstack',
-		origin: 'https://02-portfolio-fullstack.vercel.app',
+		origin: 'https://mk-stackfolio.vercel.app',
 	},
 	{
 		id: '03',
 		name: 'Frontend',
-		origin: 'https://03-portfolio-frontend.vercel.app',
+		origin: 'https://mk-pixelfolio.vercel.app',
 	},
 	{
 		id: '04',
 		name: 'Backend',
-		origin: 'https://04-portfolio-backend.vercel.app',
+		origin: 'https://mk-corefolio.vercel.app',
 	},
 	{
 		id: '05',
 		name: 'Frontend AI',
-		origin: 'https://05-portfolio-frontend-ai.vercel.app',
+		origin: 'https://mk-neurofolio.vercel.app',
 	},
 ] as const;
 
 const MINUTES_PER_DAY = 1440;
-const SLOT_MINUTES = 288;
+// Rotate the served portfolio every hour (IST). With 5 portfolios the cycle repeats
+// every 5 hours and follows the same pattern each day (hour % WEBSITES.length).
+const SLOT_MINUTES = 60;
 const IST_OFFSET_MINUTES = 330;
 
 const SEARCH_BOTS =
@@ -48,7 +50,8 @@ function getScheduledWebsite(date = new Date()) {
 
 	const indiaMinutes = (utcMinutes + IST_OFFSET_MINUTES) % MINUTES_PER_DAY;
 
-	const index = Math.min(Math.floor(indiaMinutes / SLOT_MINUTES), WEBSITES.length - 1);
+	// Hourly rotation that wraps across the portfolio list (e.g. 5 sites → repeats every 5h).
+	const index = Math.floor(indiaMinutes / SLOT_MINUTES) % WEBSITES.length;
 
 	return {
 		index,
