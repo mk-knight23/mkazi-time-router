@@ -44,6 +44,9 @@ const SEARCH_BOTS =
 	/googlebot|bingbot|yandexbot|duckduckbot|slurp|baiduspider|facebookexternalhit|twitterbot|linkedinbot|embedly|quora|pinterest|redditbot/i;
 
 const CANONICAL_INDEX = 0;
+const DUBAI_ORIGIN = 'https://command-center-eta-tan.vercel.app';
+const DUBAI_PATH = '/dubai';
+
 
 function getScheduledWebsite(date = new Date()) {
 	const utcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes();
@@ -229,6 +232,45 @@ ${buttons}
 	}
 }
 
+function isDubaiRequest(url: URL): boolean {
+	return url.pathname === DUBAI_PATH || url.pathname.startsWith(DUBAI_PATH + '/');
+}
+
+async function proxyDubai(request: Request, publicUrl: URL): Promise<Response> {
+	const destination = new URL(DUBAI_ORIGIN);
+	destination.pathname = publicUrl.pathname;
+	destination.search = publicUrl.search;
+
+	const headers = new Headers(request.headers);
+	headers.delete('host');
+	headers.set('x-forwarded-host', publicUrl.host);
+	headers.set('x-forwarded-proto', publicUrl.protocol.replace(':', ''));
+
+	try {
+		const upstream = await fetch(destination.toString(), {
+			method: request.method,
+			headers,
+			body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+			redirect: 'manual',
+		});
+
+		const responseHeaders = new Headers(upstream.headers);
+		responseHeaders.set('x-mkazi-router', 'cloudflare-worker-v2');
+		responseHeaders.set('x-mkazi-route', 'dubai');
+
+		const location = responseHeaders.get('location');
+		if (location) responseHeaders.set('location', rewriteRedirectLocation(location, DUBAI_ORIGIN, publicUrl));
+
+		return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: responseHeaders });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Dubai proxy error';
+		return Response.json(
+			{ ok: false, code: 'DUBAI_PROXY_FAILED', message },
+			{ status: 502, headers: { 'cache-control': 'no-store', 'x-mkazi-router': 'cloudflare-worker-v2' } },
+		);
+	}
+}
+
 export default {
 	async fetch(request: Request, _env: Env): Promise<Response> {
 		const publicUrl = new URL(request.url);
@@ -236,6 +278,10 @@ export default {
 		if (publicUrl.hostname === 'www.mkazi.live') {
 			publicUrl.hostname = 'mkazi.live';
 			return Response.redirect(publicUrl.toString(), 301);
+		}
+
+		if (isDubaiRequest(publicUrl)) {
+			return proxyDubai(request, publicUrl);
 		}
 
 		const scheduled = getScheduledWebsite();

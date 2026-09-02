@@ -33,6 +33,9 @@ const SLOT_MINUTES = 60; // rotate every hour
 const IST_OFFSET_MINUTES = 330;
 const CANONICAL_INDEX = 0;
 const ROUTER_ID = 'vercel-edge-v1';
+const DUBAI_ORIGIN = 'https://command-center-eta-tan.vercel.app';
+const DUBAI_PATH = '/dubai';
+
 
 const SEARCH_BOTS =
 	/googlebot|bingbot|yandexbot|duckduckbot|slurp|baiduspider|facebookexternalhit|twitterbot|linkedinbot|embedly|quora|pinterest|redditbot/i;
@@ -121,12 +124,58 @@ async function fetchWithFallback(primaryIndex: number, publicUrl: URL, headers: 
 	};
 }
 
+function isDubaiRequest(url: URL): boolean {
+	return url.pathname === DUBAI_PATH || url.pathname.startsWith(DUBAI_PATH + '/');
+}
+
+async function proxyDubai(request: Request, publicUrl: URL): Promise<Response> {
+	const destination = new URL(DUBAI_ORIGIN);
+	destination.pathname = publicUrl.pathname;
+	destination.search = publicUrl.search;
+
+	const fwd = new Headers(request.headers);
+	fwd.delete('host');
+	fwd.set('x-forwarded-host', publicUrl.host);
+	fwd.set('x-forwarded-proto', publicUrl.protocol.replace(':', ''));
+
+	try {
+		const upstream = await fetch(destination.toString(), {
+			method: request.method,
+			headers: fwd,
+			body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+			redirect: 'manual',
+		});
+
+		const headers = new Headers(upstream.headers);
+		headers.set('x-mkazi-router', ROUTER_ID);
+		headers.set('x-mkazi-route', 'dubai');
+
+		const location = headers.get('location');
+		if (location) headers.set('location', rewriteRedirectLocation(location, DUBAI_ORIGIN, publicUrl));
+
+		const contentType = headers.get('content-type') || '';
+		if (contentType.includes('text/html')) headers.set('cache-control', 'private, no-store, max-age=0');
+
+		return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Dubai proxy error';
+		return Response.json(
+			{ ok: false, code: 'DUBAI_PROXY_FAILED', message },
+			{ status: 502, headers: { 'cache-control': 'no-store', 'x-mkazi-router': ROUTER_ID } },
+		);
+	}
+}
+
 export default async function middleware(request: Request): Promise<Response> {
 	const publicUrl = new URL(request.url);
 
 	if (publicUrl.hostname === 'www.mkazi.live') {
 		publicUrl.hostname = 'mkazi.live';
 		return Response.redirect(publicUrl.toString(), 301);
+	}
+
+	if (isDubaiRequest(publicUrl)) {
+		return proxyDubai(request, publicUrl);
 	}
 
 	const scheduled = getScheduledWebsite();
