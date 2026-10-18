@@ -1,3 +1,5 @@
+import { profileResponse } from './profile';
+
 interface Env {}
 
 type Website = {
@@ -10,27 +12,27 @@ const WEBSITES: readonly Website[] = [
 	{
 		id: '01',
 		name: 'DevTools',
-		origin: 'https://mk-devdeck.vercel.app',
+		origin: 'https://devtools.mkazi.live',
 	},
 	{
 		id: '02',
 		name: 'Fullstack',
-		origin: 'https://mk-stackfolio.vercel.app',
+		origin: 'https://fullstack.mkazi.live',
 	},
 	{
 		id: '03',
 		name: 'Frontend',
-		origin: 'https://mk-pixelfolio.vercel.app',
+		origin: 'https://frontend.mkazi.live',
 	},
 	{
 		id: '04',
 		name: 'Backend',
-		origin: 'https://mk-corefolio.vercel.app',
+		origin: 'https://backend.mkazi.live',
 	},
 	{
 		id: '05',
 		name: 'Frontend AI',
-		origin: 'https://mk-neurofolio.vercel.app',
+		origin: 'https://ai.mkazi.live',
 	},
 ] as const;
 
@@ -280,6 +282,9 @@ export default {
 			return Response.redirect(publicUrl.toString(), 301);
 		}
 
+		const profile = profileResponse(request);
+		if (profile) return profile;
+
 		if (isDubaiRequest(publicUrl)) {
 			return proxyDubai(request, publicUrl);
 		}
@@ -450,3 +455,4 @@ export default {
 		}
 	},
 };
+

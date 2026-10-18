@@ -74,3 +74,8 @@ Edit the `WEBSITES` array (origins) and `SLOT_MINUTES` (rotation interval, curre
 npm install
 npm test        # Cloudflare Worker unit tests (vitest + @cloudflare/vitest-pool-workers)
 ```
+
+
+## Stable professional profile and discovery
+
+`/about` serves the same public biography for all visitors on both router runtimes. `/robots.txt`, `/sitemap.xml`, `/llms.txt` and `/llms-full.txt` are served locally, independently of the hourly portfolio rotation. Portrait and portfolio links use the branded subdomains. The optional text summaries do not guarantee inclusion in AI answers.

@@ -1,3 +1,5 @@
+import { profileResponse } from './src/profile';
+
 /**
  * MK Router — Vercel Edge Middleware port of the Cloudflare Worker.
  *
@@ -21,11 +23,11 @@ interface Website {
 }
 
 const WEBSITES: readonly Website[] = [
-	{ id: '01', name: 'DevTools', origin: 'https://mk-devdeck.vercel.app' },
-	{ id: '02', name: 'Fullstack', origin: 'https://mk-stackfolio.vercel.app' },
-	{ id: '03', name: 'Frontend', origin: 'https://mk-pixelfolio.vercel.app' },
-	{ id: '04', name: 'Backend', origin: 'https://mk-corefolio.vercel.app' },
-	{ id: '05', name: 'Frontend AI', origin: 'https://mk-neurofolio.vercel.app' },
+	{ id: '01', name: 'DevTools', origin: 'https://devtools.mkazi.live' },
+	{ id: '02', name: 'Fullstack', origin: 'https://fullstack.mkazi.live' },
+	{ id: '03', name: 'Frontend', origin: 'https://frontend.mkazi.live' },
+	{ id: '04', name: 'Backend', origin: 'https://backend.mkazi.live' },
+	{ id: '05', name: 'Frontend AI', origin: 'https://ai.mkazi.live' },
 ] as const;
 
 const MINUTES_PER_DAY = 1440;
@@ -174,6 +176,9 @@ export default async function middleware(request: Request): Promise<Response> {
 		return Response.redirect(publicUrl.toString(), 301);
 	}
 
+	const profile = profileResponse(request);
+	if (profile) return profile;
+
 	if (isDubaiRequest(publicUrl)) {
 		return proxyDubai(request, publicUrl);
 	}
@@ -267,3 +272,4 @@ export default async function middleware(request: Request): Promise<Response> {
 		);
 	}
 }
+
