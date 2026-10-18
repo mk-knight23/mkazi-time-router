@@ -1,5 +1,5 @@
 // Shared by Cloudflare and the Vercel fallback. Public biography is identical for all visitors.
-const biographyUrl = 'https://mkazi.live/about';
+const biographyUrl = 'https://devtools.mkazi.live/about.html';
 const portraitUrl = 'https://devtools.mkazi.live/kazi-musharraf.jpg';
 const githubUrl = 'https://github.com/mk-knight23';
 const linkedinUrl = 'https://www.linkedin.com/in/kazi-musharraf-0674871a4';
@@ -51,12 +51,12 @@ const biography = `<!doctype html>
 <footer>Public professional profile of Kazi Musharraf · Updated 18 October 2026</footer>
 </main></body></html>`;
 
-const summary = `# Kazi Musharraf\n\n${description}\n\nAlso known as Musharraf Ateeque Kazi, Musharraf Kazi, MK Knight and mk-knight23. Former Project Engineer at Wipro Technologies, July 2022 to July 2025; Project Intern, February to July 2022. Works remotely from India.\n\n- Biography: ${biographyUrl}\n- GitHub: ${githubUrl}\n- LinkedIn: ${linkedinUrl}\n- Portrait: ${portraitUrl}\n${portfolios.map(([name, url]) => '- ' + name + ': ' + url).join('\n')}\n`;
+const summary = `# Kazi Musharraf\n\n${description}\n\nAlso known as Musharraf Ateeque Kazi, Musharraf Kazi, MK Knight and mk-knight23. Former Project Engineer at Wipro Technologies, July 2022 to July 2025; Project Intern, February to July 2022. Works remotely from India.\n\n- Biography: ${biographyUrl}\n- Portfolio home: https://mkazi.live/\n- GitHub: ${githubUrl}\n- LinkedIn: ${linkedinUrl}\n- Portrait: ${portraitUrl}\n${portfolios.map(([name, url]) => '- ' + name + ': ' + url).join('\n')}\n`;
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 <url><loc>https://mkazi.live/</loc></url>
-<url><loc>${biographyUrl}</loc><image:image><image:loc>${portraitUrl}</image:loc></image:image></url>
+<url><loc>https://mkazi.live/about</loc><image:image><image:loc>${portraitUrl}</image:loc></image:image></url>
 </urlset>`;
 
 export function profileResponse(request: Request): Response | null {

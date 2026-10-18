@@ -19,7 +19,7 @@ describe('stable public profile', () => {
 		const head = profileResponse(new Request('https://mkazi.live/about', { method: 'HEAD' }))!;
 		expect(head.status).toBe(200);
 		expect(await head.text()).toBe('');
-		expect(profileResponse(new Request('https://mkazi.live/about/'))!.headers.get('location')).toBe('https://mkazi.live/about');
+		expect(profileResponse(new Request('https://mkazi.live/about/'))!.headers.get('location')).toBe('https://devtools.mkazi.live/about.html');
 	});
 	it('serves discovery files independently of upstreams and rejects unsupported writes', async () => {
 		for (const path of ['/robots.txt', '/sitemap.xml', '/llms.txt', '/llms-full.txt']) {
