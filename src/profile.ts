@@ -1,5 +1,5 @@
 // Shared by Cloudflare and the Vercel fallback. Public biography is identical for all visitors.
-const biographyUrl = 'https://devtools.mkazi.live/about.html';
+const biographyUrl = 'https://devtools.mkazi.live/about';
 const portraitUrl = 'https://devtools.mkazi.live/kazi-musharraf.jpg';
 const githubUrl = 'https://github.com/mk-knight23';
 const linkedinUrl = 'https://www.linkedin.com/in/kazi-musharraf-0674871a4';
@@ -61,9 +61,9 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 
 export function profileResponse(request: Request): Response | null {
 	const path = new URL(request.url).pathname;
-	if (!['/about', '/about/', '/robots.txt', '/sitemap.xml', '/llms.txt', '/llms-full.txt'].includes(path)) return null;
+	if (!['/about', '/about/', '/about.html', '/robots.txt', '/sitemap.xml', '/llms.txt', '/llms-full.txt'].includes(path)) return null;
 	if (request.method !== 'GET' && request.method !== 'HEAD') return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } });
-	if (path === '/about/') return Response.redirect(biographyUrl, 301);
+	if (path === '/about/' || path === '/about.html') return Response.redirect(biographyUrl, 301);
 	const robots = 'User-agent: *\nAllow: /\n\nSitemap: https://mkazi.live/sitemap.xml\n' + portfolios.map(([, url]) => 'Sitemap: ' + url + 'sitemap.xml').join('\n') + '\n';
 	const [body, contentType] = path === '/about' ? [biography, 'text/html']
 		: path === '/sitemap.xml' ? [sitemap, 'application/xml']
