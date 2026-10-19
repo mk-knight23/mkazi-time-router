@@ -13,7 +13,7 @@ describe('stable public profile', () => {
 		const schema = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)![1]);
 		expect(schema['@graph'][0].sameAs).toContain('https://www.linkedin.com/in/kazi-musharraf-0674871a4');
 		expect(html).toContain('July 2022 to July 2025');
-		expect(html).toContain('<img src="https://devtools.mkazi.live/kazi-musharraf.jpg"');
+		expect(html).toMatch(/<img\b[^>]*src="https:\/\/devtools\.mkazi\.live\/kazi-musharraf\.jpg"/);
 	});
 	it('supports HEAD and a single canonical biography URL', async () => {
 		const head = profileResponse(new Request('https://mkazi.live/about', { method: 'HEAD' }))!;
