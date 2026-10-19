@@ -1,6 +1,15 @@
-import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
-import { describe, it, expect } from 'vitest';
+import { env, createExecutionContext, waitOnExecutionContext, fetchMock } from 'cloudflare:test';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import worker from '../src/index';
+
+beforeEach(() => {
+ fetchMock.activate();
+ fetchMock.disableNetConnect();
+ for (const host of ['devtools', 'fullstack', 'frontend', 'backend', 'ai']) {
+  fetchMock.get(`https://${host}.mkazi.live`).intercept({ path: /.*/ }).reply(200, '<html><body><h1>Portfolio</h1></body></html>', { headers: { 'content-type': 'text/html' } }).persist();
+ }
+});
+afterEach(() => fetchMock.deactivate());
 
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
@@ -39,6 +48,8 @@ describe('mkazi-time-router', () => {
 		const response = await worker.fetch(request, env, ctx);
 		await waitOnExecutionContext(ctx);
 
+		expect(response.status).toBe(200);
+		expect(await response.text()).toContain('Portfolio');
 		expect(response.headers.get('x-mkazi-router')).toBe('cloudflare-worker-v2');
 		expect(response.headers.get('x-mkazi-active-site')).toMatch(/^0[1-5]$/);
 	});
