@@ -1,3 +1,4 @@
+import { agentResponse } from './src/agent-kit.mjs';
 import { profileResponse } from './src/profile';
 
 /**
@@ -96,7 +97,7 @@ function switcherHtml(activeIndex: number): string {
 		const cls = i === activeIndex ? 'mkr-btn mkr-active' : 'mkr-btn';
 		return `<a href="?portfolio=${w.id}" class="${cls}" title="${w.name}">${w.id}</a>`;
 	}).join('');
-	return `<div id="mkazi-switcher" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:0;padding:6px 10px;background:rgba(8,12,20,0.85);border:1px solid rgba(255,255,255,0.15);border-radius:30px;backdrop-filter:blur(14px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.4)"><span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-right:8px;white-space:nowrap">Portfolio</span>${buttons}<style>.mkr-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);text-decoration:none;transition:all .2s;margin:0 2px}.mkr-btn:hover{background:rgba(255,255,255,0.12);color:#fff}.mkr-active{background:rgba(16,185,129,0.9);color:#0a0a0f!important}.mkr-active:hover{background:rgba(16,185,129,1)}</style></div>`;
+	return `<div id="mkazi-switcher" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:0;padding:6px 10px;background:rgba(8,12,20,0.85);border:1px solid rgba(255,255,255,0.15);border-radius:30px;backdrop-filter:blur(14px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.4)"><span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-right:8px;white-space:nowrap">Portfolio</span>${buttons}<a href="/agents" style="color:#a3e635;font-size:11px;text-decoration:none;white-space:nowrap;margin-left:10px">Agent tools ↗</a><style>.mkr-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);text-decoration:none;transition:all .2s;margin:0 2px}.mkr-btn:hover{background:rgba(255,255,255,0.12);color:#fff}.mkr-active{background:rgba(16,185,129,0.9);color:#0a0a0f!important}.mkr-active:hover{background:rgba(16,185,129,1)}</style></div>`;
 }
 
 async function fetchWithFallback(primaryIndex: number, publicUrl: URL, headers: Headers, request: Request) {
@@ -149,6 +150,7 @@ async function proxyDubai(request: Request, publicUrl: URL): Promise<Response> {
 		});
 
 		const headers = new Headers(upstream.headers);
+		if (publicUrl.pathname === '/') headers.append('vary', 'Accept');
 		headers.set('x-mkazi-router', ROUTER_ID);
 		headers.set('x-mkazi-route', 'dubai');
 
@@ -176,7 +178,10 @@ export default async function middleware(request: Request): Promise<Response> {
 		return Response.redirect(publicUrl.toString(), 301);
 	}
 
-	const profile = profileResponse(request);
+	const agent = await agentResponse(request);
+		if (agent) return agent;
+
+		const profile = profileResponse(request);
 	if (profile) return profile;
 
 	if (isDubaiRequest(publicUrl)) {
@@ -232,6 +237,7 @@ export default async function middleware(request: Request): Promise<Response> {
 		const { response: upstream, activeWebsite } = await fetchWithFallback(activeIndex, publicUrl, fwd, request);
 
 		const headers = new Headers(upstream.headers);
+		if (publicUrl.pathname === '/') headers.append('vary', 'Accept');
 		headers.delete('content-encoding');
 		headers.delete('content-length');
 		headers.set('x-mkazi-router', ROUTER_ID);

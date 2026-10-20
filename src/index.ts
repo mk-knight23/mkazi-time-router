@@ -1,3 +1,4 @@
+import { agentResponse } from './agent-kit.mjs';
 import { profileResponse } from './profile';
 
 interface Env {}
@@ -221,7 +222,7 @@ class SwitcherInjector {
 
 		const html = `<div id="mkazi-switcher" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:0;padding:6px 10px;background:rgba(8,12,20,0.85);border:1px solid rgba(255,255,255,0.15);border-radius:30px;backdrop-filter:blur(14px);font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
 <span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-right:8px;white-space:nowrap">Portfolio</span>
-${buttons}
+${buttons}<a href="/agents" style="color:#a3e635;font-size:11px;text-decoration:none;white-space:nowrap;margin-left:10px">Agent tools ↗</a>
 <style>
 .mkr-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);text-decoration:none;transition:all .2s;margin:0 2px}
 .mkr-btn:hover{background:rgba(255,255,255,0.12);color:#fff}
@@ -281,6 +282,9 @@ export default {
 			publicUrl.hostname = 'mkazi.live';
 			return Response.redirect(publicUrl.toString(), 301);
 		}
+
+		const agent = await agentResponse(request);
+		if (agent) return agent;
 
 		const profile = profileResponse(request);
 		if (profile) return profile;
@@ -372,6 +376,7 @@ export default {
 			} = await fetchWithFallback(activeIndex, publicUrl, requestHeaders, request);
 
 			const responseHeaders = new Headers(upstreamResponse.headers);
+			if (publicUrl.pathname === '/') responseHeaders.append('vary', 'Accept');
 
 			responseHeaders.set('x-mkazi-router', 'cloudflare-worker-v2');
 
