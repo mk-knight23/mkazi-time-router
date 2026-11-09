@@ -154,6 +154,8 @@ async function fetchWithFallback(
 }> {
 	const order = [primaryIndex];
 	for (let i = 0; i < WEBSITES.length; i++) {
+		// Never substitute another portfolio's homepage at the canonical root URL.
+		if (publicUrl.pathname === '/' && primaryIndex === CANONICAL_INDEX) break;
 		if (i !== primaryIndex) order.push(i);
 	}
 
