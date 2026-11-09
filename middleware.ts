@@ -268,9 +268,13 @@ export default async function middleware(request: Request): Promise<Response> {
 		// Inject the switcher into HTML responses (HTMLRewriter replacement).
 		if (contentType.includes('text/html')) {
 			const html = await upstream.text();
-			const injected = html.includes('</body>')
-				? html.replace('</body>', `${switcherHtml(activeIndex)}</body>`)
-				: html + switcherHtml(activeIndex);
+			const canonicalHtml = publicUrl.pathname === '/' && override === null
+				? html.replace(/(<link\s+rel=["']canonical["']\s+href=["'])https:\/\/devtools\.mkazi\.live\/?(["'])/i, '$1https://mkazi.live/$2')
+					.replace(/(<meta\s+property=["']og:url["']\s+content=["'])https:\/\/devtools\.mkazi\.live\/?(["'])/i, '$1https://mkazi.live/$2')
+				: html;
+			const injected = canonicalHtml.includes('</body>')
+				? canonicalHtml.replace('</body>', `${switcherHtml(activeIndex)}</body>`)
+				: canonicalHtml + switcherHtml(activeIndex);
 			return new Response(injected, { status: upstream.status, statusText: upstream.statusText, headers });
 		}
 
