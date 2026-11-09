@@ -249,7 +249,7 @@ export default async function middleware(request: Request): Promise<Response> {
 		headers.set('x-mkazi-active-site', activeWebsite.id);
 		headers.set('x-mkazi-active-name', activeWebsite.name);
 		if (bot) headers.set('x-mkazi-bot-mode', 'canonical');
-		if (override !== null) headers.set('x-mkazi-override', 'query-param');
+		if (override !== null) { headers.set('x-mkazi-override', 'query-param'); headers.set('x-robots-tag', 'noindex, follow'); }
 
 		const location = headers.get('location');
 		if (location) headers.set('location', rewriteRedirectLocation(location, activeWebsite.origin, publicUrl));
