@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "site": "https://mkazi.live/",
+  "description": "Public map of distinct portfolio specializations; links are project entry points, not proof of proficiency in every mentioned skill.",
+  "portfolios": [
+    {
+      "name": "Developer tools and AI engineering",
+      "url": "https://devtools.mkazi.live/",
+      "repository": "https://github.com/mk-knight23/MK-DevDeck"
+    },
+    {
+      "name": "Full-stack applications",
+      "url": "https://fullstack.mkazi.live/",
+      "repository": "https://github.com/mk-knight23/MK-StackFolio"
+    },
+    {
+      "name": "Frontend engineering",
+      "url": "https://frontend.mkazi.live/",
+      "repository": "https://github.com/mk-knight23/MK-PixelFolio"
+    },
+    {
+      "name": "Backend engineering",
+      "url": "https://backend.mkazi.live/",
+      "repository": "https://github.com/mk-knight23/MK-CoreFolio"
+    },
+    {
+      "name": "AI interface engineering",
+      "url": "https://ai.mkazi.live/",
+      "repository": "https://github.com/mk-knight23/MK-NeuroFolio"
+    }
+  ],
+  "router": {
+    "repository": "https://github.com/mk-knight23/mkazi-time-router",
+    "dependencies": [],
+    "developmentDependencies": [
+      "@cloudflare/vitest-pool-workers",
+      "@types/node",
+      "typescript",
+      "vitest",
+      "wrangler"
+    ],
+    "commands": {
+      "deploy": "wrangler deploy",
+      "dev": "wrangler dev",
+      "start": "wrangler dev",
+      "test": "vitest",
+      "cf-typegen": "wrangler types"
+    }
+  }
+}
