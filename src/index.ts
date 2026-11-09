@@ -283,6 +283,13 @@ export default {
 			return Response.redirect(publicUrl.toString(), 301);
 		}
 
+	// Serve crawler discovery endpoints at the router rather than proxying them to an arbitrary portfolio.
+	if (publicUrl.pathname === '/robots.txt') {
+		return new Response('User-agent: *\nAllow: /\nSitemap: https://mkazi.live/sitemap.xml\n', { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+	}
+	if (publicUrl.pathname === '/sitemap.xml') {
+		return new Response('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://mkazi.live/</loc></url></urlset>', { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+	}
 		const agent = await agentResponse(request);
 		if (agent) return agent;
 
@@ -351,12 +358,8 @@ export default {
 
 		if (portfolioOverride !== null) {
 			activeIndex = portfolioOverride;
-		} else if (botDetected) {
-			activeIndex = CANONICAL_INDEX;
-		} else if (isHtmlNavigation(request)) {
-			activeIndex = scheduled.index;
 		} else {
-			activeIndex = stickyIndex ?? scheduled.index;
+			activeIndex = CANONICAL_INDEX;
 		}
 
 		const requestHeaders = new Headers(request.headers);
@@ -390,6 +393,7 @@ export default {
 
 			if (portfolioOverride !== null) {
 				responseHeaders.set('x-mkazi-override', 'query-param');
+				responseHeaders.set('x-robots-tag', 'noindex, follow');
 			}
 
 			const location = responseHeaders.get('location');
@@ -404,7 +408,7 @@ export default {
 				responseHeaders.set('cache-control', 'private, no-store, max-age=0');
 			}
 
-			const cookieIndex = portfolioOverride !== null ? portfolioOverride : scheduled.index;
+			const cookieIndex = activeIndex;
 
 			if (isHtmlNavigation(request)) {
 				const cookieLifetime = portfolioOverride !== null ? 3600 : getCookieLifetime(scheduled.indiaMinutes);
