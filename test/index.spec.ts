@@ -82,4 +82,34 @@ describe('mkazi-time-router', () => {
 		expect(response.headers.get('x-mkazi-active-site')).toBe('03');
 		expect(response.headers.get('x-mkazi-override')).toBe('query-param');
 	});
+	it('serves a stable default homepage to human visitors', async () => {
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(new IncomingRequest('https://mkazi.live/', {headers:{accept:'text/html'}}), env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.status).toBe(200);
+		expect(response.headers.get('x-mkazi-active-site')).toBe('01');
+	});
+
+	it('serves crawler discovery endpoints with canonical URLs', async () => {
+		const ctx = createExecutionContext();
+		const robots = await worker.fetch(new IncomingRequest('https://mkazi.live/robots.txt'), env, ctx);
+		expect(robots.status).toBe(200);
+		expect(robots.headers.get('content-type')).toContain('text/plain');
+		expect(await robots.text()).toContain('Sitemap: https://mkazi.live/sitemap.xml');
+		const sitemap = await worker.fetch(new IncomingRequest('https://mkazi.live/sitemap.xml'), env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(sitemap.status).toBe(200);
+		expect(sitemap.headers.get('content-type')).toContain('application/xml');
+		const xml = await sitemap.text();
+		expect(xml).toContain('<loc>https://mkazi.live/</loc>');
+		expect(xml).not.toContain('portfolio=');
+	});
+
+	it('marks manual portfolio overrides as noindex', async () => {
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(new IncomingRequest('https://mkazi.live/?portfolio=03', {headers:{accept:'text/html'}}), env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.headers.get('x-robots-tag')).toContain('noindex');
+	});
+
 });
