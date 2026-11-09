@@ -419,6 +419,16 @@ export default {
 				);
 			}
 
+			if (contentType.includes('text/html') && publicUrl.pathname === '/' && portfolioOverride === null) {
+				const html = await upstreamResponse.text();
+				const rewritten = html.replace(/(<link\s+rel=["']canonical["']\s+href=["'])https:\/\/devtools\.mkazi\.live\/?(["'])/i, '$1https://mkazi.live/$2')
+					.replace(/(<meta\s+property=["']og:url["']\s+content=["'])https:\/\/devtools\.mkazi\.live\/?(["'])/i, '$1https://mkazi.live/$2');
+				const output = !botDetected && isHtmlNavigation(request)
+					? new HTMLRewriter().on('body', new SwitcherInjector(resolvedIndex, WEBSITES)).transform(new Response(rewritten, { status: upstreamResponse.status, headers: responseHeaders }))
+					: new Response(rewritten, { status: upstreamResponse.status, headers: responseHeaders });
+				return output;
+			}
+
 			if (contentType.includes('text/html') && !botDetected && isHtmlNavigation(request)) {
 				const rewriter = new HTMLRewriter().on('body', new SwitcherInjector(resolvedIndex, WEBSITES));
 
