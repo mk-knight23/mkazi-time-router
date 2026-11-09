@@ -5,7 +5,7 @@
 
 > **Live:** **[mkazi.live](https://mkazi.live)** (Cloudflare) · backup **[router.mkazi.live](https://router.mkazi.live)** (Vercel)
 
-A **time-based portfolio router**. It serves **one of five portfolio sites at the root domain, rotating every hour (IST)** — so a visitor to the main domain sees a different portfolio each hour, cycling through all five. The public domain stays in the address bar (it's a reverse proxy, not a redirect).
+A **portfolio reverse proxy**. The root domain serves **DevTools consistently** for both visitors and search crawlers. Visitors can explore the five portfolios on their own subdomains or use the manual `?portfolio=N` switcher. The public domain stays in the address bar (reverse proxy, not redirect).
 
 ## The MK Portfolio Network
 
@@ -16,7 +16,7 @@ A **time-based portfolio router**. It serves **one of five portfolio sites at th
 | Full-Stack Developer | **[fullstack.mkazi.live](https://fullstack.mkazi.live)** | [`MK-StackFolio`](https://github.com/mk-knight23/MK-StackFolio) |
 | AI Engineer & Dev Tools | **[devtools.mkazi.live](https://devtools.mkazi.live)** | [`MK-DevDeck`](https://github.com/mk-knight23/MK-DevDeck) |
 | AI Frontend Engineer | **[ai.mkazi.live](https://ai.mkazi.live)** | [`MK-NeuroFolio`](https://github.com/mk-knight23/MK-NeuroFolio) |
-| All five, rotating hourly | **[mkazi.live](https://mkazi.live)** | [`mkazi-time-router`](https://github.com/mk-knight23/mkazi-time-router) ← *this repo* |
+| Primary DevTools homepage and manual portfolio switcher | **[mkazi.live](https://mkazi.live)** | [`mkazi-time-router`](https://github.com/mk-knight23/mkazi-time-router) ← *this repo* |
 
 Runs two ways from one codebase:
 
@@ -34,18 +34,19 @@ Runs two ways from one codebase:
 | 04 | Backend | `mk-corefolio.vercel.app` |
 | 05 | Frontend AI | `mk-neurofolio.vercel.app` |
 
-## How rotation works
+## Stable homepage and portfolio switching
 
-- **Hourly, IST.** The active portfolio = `IST_hour % 5`. Same pattern every day (hours 0,5,10,15,20 → slot 01; 1,6,11,16,21 → slot 02; …).
-- **Sticky within the hour.** A `mkazi_active_site` cookie (lifetime = time left in the current hour) keeps sub-requests (assets, API) pinned to the same origin the HTML page came from — no mid-page origin flips.
-- **Manual override.** `?portfolio=N` (1–5) or `?portfolio=03` pins a specific portfolio for an hour.
-- **SEO-safe.** Search-engine bots always get the **canonical** portfolio (slot 01) so crawlers see a stable site.
-- **Resilient.** If the scheduled origin is down (5xx / unreachable), it falls back through the other origins automatically.
-- **Switcher UI.** A small floating portfolio switcher (01–05) is injected into every HTML page.
+- **Stable default:** `mkazi.live` serves DevTools (slot 01) to visitors and search engines alike. No user-agent-based content selection.
+- **Manual override:** `?portfolio=N` (1–5) selects a different portfolio. Override responses send `X-Robots-Tag: noindex, follow` to discourage duplicate query URL indexing.
+- **Dedicated subdomains:** The five portfolios remain reachable independently at their named subdomains.
+- **Discovery endpoints:** `/robots.txt` advertises `https://mkazi.live/sitemap.xml`; the conservative root sitemap currently lists only the homepage.
+- **Canonical homepage:** The router rewrites the DevTools homepage canonical and Open Graph URL to `https://mkazi.live/` for the root-domain homepage response.
+- **Resilience:** If an origin is unavailable, the router may fall back to another origin; verify this behavior before deployment.
+- **Switcher UI:** A floating portfolio switcher is injected into HTML where supported.
 
 ## Endpoints
 
-- `/__router-health` — JSON health check: which slot is scheduled now, IST minute-of-day, and a live HEAD-check of all five origins.
+- `/__router-health` — JSON health check: diagnostic scheduled slot, IST minute-of-day, and a live HEAD-check of all five origins.
 - `/*` — everything else is proxied to the active portfolio, preserving path + query.
 
 ## Response headers (for debugging)
