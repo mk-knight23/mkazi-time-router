@@ -393,6 +393,7 @@ export default {
 
 			if (portfolioOverride !== null) {
 				responseHeaders.set('x-mkazi-override', 'query-param');
+				responseHeaders.set('x-robots-tag', 'noindex, follow');
 			}
 
 			const location = responseHeaders.get('location');
