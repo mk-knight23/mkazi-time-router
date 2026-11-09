@@ -101,7 +101,9 @@ function switcherHtml(activeIndex: number): string {
 }
 
 async function fetchWithFallback(primaryIndex: number, publicUrl: URL, headers: Headers, request: Request) {
-	const order = [primaryIndex, ...WEBSITES.map((_, i) => i).filter((i) => i !== primaryIndex)];
+	const order = publicUrl.pathname === '/' && primaryIndex === CANONICAL_INDEX
+		? [primaryIndex] // Preserve homepage identity when the canonical origin is unavailable.
+		: [primaryIndex, ...WEBSITES.map((_, i) => i).filter((i) => i !== primaryIndex)];
 	for (const idx of order) {
 		const website = WEBSITES[idx];
 		const destination = new URL(website.origin);
