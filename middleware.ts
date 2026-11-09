@@ -178,6 +178,13 @@ export default async function middleware(request: Request): Promise<Response> {
 		return Response.redirect(publicUrl.toString(), 301);
 	}
 
+	// Serve crawler discovery endpoints at the router rather than proxying them to an arbitrary portfolio.
+	if (publicUrl.pathname === '/robots.txt') {
+		return new Response('User-agent: *\\nAllow: /\\nSitemap: https://mkazi.live/sitemap.xml\\n', { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+	}
+	if (publicUrl.pathname === '/sitemap.xml') {
+		return new Response('<?xml version="1.0" encoding="UTF-8"?>\\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://mkazi.live/</loc></url></urlset>', { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+	}
 	const agent = await agentResponse(request);
 		if (agent) return agent;
 
@@ -222,9 +229,7 @@ export default async function middleware(request: Request): Promise<Response> {
 
 	let activeIndex: number;
 	if (override !== null) activeIndex = override;
-	else if (bot) activeIndex = CANONICAL_INDEX;
-	else if (isHtmlNavigation(request)) activeIndex = scheduled.index;
-	else activeIndex = sticky ?? scheduled.index;
+	else activeIndex = CANONICAL_INDEX;
 
 	const fwd = new Headers(request.headers);
 	fwd.delete('host');
@@ -255,7 +260,7 @@ export default async function middleware(request: Request): Promise<Response> {
 		}
 
 		if (isHtmlNavigation(request)) {
-			const cookieIndex = override !== null ? override : scheduled.index;
+			const cookieIndex = activeIndex;
 			const lifetime = override !== null ? 3600 : getCookieLifetime(scheduled.indiaMinutes);
 			headers.append('set-cookie', `mkazi_active_site=${cookieIndex}; Max-Age=${lifetime}; Path=/; Secure; HttpOnly; SameSite=Lax`);
 		}
