@@ -39,6 +39,37 @@
 - Google AI optimization guidance: https://developers.google.com/search/docs/fundamentals/ai-optimization-guide
 - Google Search documentation updates: https://developers.google.com/search/updates
 
+
+## Search Console November 6, 2026: 9 excluded URLs
+
+Reported categories: 2 page-with-redirect, 1 not-found (404), 1 alternate-with-proper-canonical, and 5 crawled-currently-not-indexed. The report did not include the example URLs, so no individual URL is classified as an error here.
+
+### URL-level triage and acceptance criteria
+
+| Reason | Verify for each example URL | Correct action |
+| --- | --- | --- |
+| Redirect (2) | HTTP status, destination, loops, canonical of destination, incoming internal links | Keep intentional permanent redirects; update internal links/sitemap to destination |
+| Not found (1) | Was the content intentionally removed? Is an internal link or sitemap pointing at it? | Restore real content if required; otherwise retain genuine 404/410 and remove bad internal links |
+| Alternate canonical (1) | Does the alternate duplicate the selected canonical? Is that selection intended? | Leave valid consolidation alone; correct only unintended canonical signals |
+| Crawled not indexed (5) | Inspect page content, duplication, rendered content, title, canonical, sitemap inclusion and link discovery | Improve useful distinct content and fix technical errors; request indexing after deployment verification |
+
+### Live verification commands
+
+```sh
+curl -IL https://www.mkazi.live/
+curl -IL https://mkazi.live/
+curl -i https://mkazi.live/robots.txt
+curl -i https://mkazi.live/sitemap.xml
+curl -IL 'https://mkazi.live/?portfolio=03'
+curl -IL https://devtools.mkazi.live/blog/stable-portfolio-routing.html
+```
+
+Expected: www redirects to apex; canonical homepage returns 200 HTML and apex canonical; robots references apex sitemap; sitemap returns valid XML; override HTML responses send `X-Robots-Tag: noindex, follow`; article returns 200 and self-canonical. Confirm actual statuses before filing Search Console validation.
+
+### Safeguard applied
+
+The Cloudflare and Vercel router implementations no longer substitute a different portfolio at the canonical homepage when the DevTools origin fails. This prevents changing homepage identity under the same URL. A failed primary origin may instead cause a 502, which must be monitored and fixed at the origin/deployment layer.
+
 ## Release gate
 
 No claim of successful production SEO remediation until the target deployment has passed smoke tests, the live canonical/sitemap/robots responses have been checked, and Search Console revalidation has been initiated. Indexing and AI citations are not guaranteed.
